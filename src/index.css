@@ -1,0 +1,29 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+  /* Supporting Fixed Position on root */
+  will-change: transform;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  text-spacing-trim: space-all !important;
+  font-family: 'Inter', 'Noto Color Emoji', 'Motiff Emoji', 'Noto Sans', 'Noto Sans Symbols', 'Noto Sans Symbols 2', 'Noto Sans Math', 'Noto Sans JP', 'Noto Sans SC', 'Noto Sans HK', 'Noto Sans KR', 'Noto Sans Hebrew', 'Noto Sans Tamil', 'Noto Sans Thai', 'Noto Sans Tai Le', 'Noto Sans New Tai Lue', 'Noto Sans Tai Tham', 'Noto Sans Tai Viet', 'Noto Sans Lao', 'Noto Sans Khmer', 'Noto Sans Bengali', 'Noto Sans Gujarati', 'Noto Sans Telugu', 'Noto Sans Kannada', 'Noto Sans Malayalam', 'Noto Sans Javanese', 'Noto Sans Georgian', 'Noto Sans Devanagari', 'Noto Sans Arabic', sans-serif !important;
+}
+
+body {
+  width: 100%;
+}
+
+.site-header {
+  --site-header-height: 5rem;
+}
