@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import SiteHeader from './components/SiteHeader.tsx';
 import SiteFooter from './components/SiteFooter.tsx';
@@ -28,7 +28,11 @@ function gridPlacementClass(product: CatalogProduct, index: number): string {
 export default function ShopPage() {
   const [searchParams] = useSearchParams();
   const urlCategory = searchParams.get('category')?.trim().toLowerCase() ?? '';
-  const { searchQuery } = useSearch();
+  const { searchQuery, consumePendingShopOpen } = useSearch();
+
+  useLayoutEffect(() => {
+    consumePendingShopOpen();
+  }, [consumePendingShopOpen]);
 
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);

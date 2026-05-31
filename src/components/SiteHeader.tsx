@@ -59,10 +59,14 @@ export default function SiteHeader() {
     openSearch,
     closeSearch,
     clearSearch,
+    resetSearch,
+    requestSearchOnShop,
+    hasPendingShopOpen,
   } = useSearch();
   const location = useLocation();
   const navigate = useNavigate();
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const prevPathnameRef = useRef(location.pathname);
   const [shopMenuOpen, setShopMenuOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const shopCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -95,8 +99,8 @@ export default function SiteHeader() {
     suppressHoverOpenRef.current = true;
     closeShopMenu();
     setMobileNavOpen(false);
-    closeSearch();
-  }, [closeShopMenu, closeSearch]);
+    resetSearch();
+  }, [closeShopMenu, resetSearch]);
 
   const handleHoverOpen = useCallback(() => {
     if (!hoverCapable || suppressHoverOpenRef.current) return;
@@ -116,8 +120,22 @@ export default function SiteHeader() {
   useEffect(() => () => clearShopCloseTimer(), [clearShopCloseTimer]);
 
   useEffect(() => {
-    handleNavigationClose();
-  }, [location.pathname, location.search, location.key, handleNavigationClose]);
+    const previousPath = prevPathnameRef.current;
+    prevPathnameRef.current = location.pathname;
+
+    suppressHoverOpenRef.current = true;
+    closeShopMenu();
+    setMobileNavOpen(false);
+
+    if (location.pathname !== '/shop') {
+      resetSearch();
+      return;
+    }
+
+    if (previousPath !== '/shop' && !hasPendingShopOpen()) {
+      resetSearch();
+    }
+  }, [location.pathname, location.key, closeShopMenu, resetSearch, hasPendingShopOpen]);
 
   useEffect(() => {
     const mq = window.matchMedia('(hover: hover)');
@@ -149,22 +167,36 @@ export default function SiteHeader() {
 
   const handleSearchToggle = useCallback(() => {
     if (isSearchOpen) {
-      closeSearch();
+      resetSearch();
       return;
     }
     closeShopMenu();
     setMobileNavOpen(false);
-    openSearch();
+
     if (location.pathname !== '/shop') {
+      requestSearchOnShop();
       navigate('/shop');
+      return;
     }
-  }, [isSearchOpen, closeSearch, closeShopMenu, openSearch, location.pathname, navigate]);
+
+    clearSearch();
+    openSearch();
+  }, [
+    isSearchOpen,
+    resetSearch,
+    closeShopMenu,
+    requestSearchOnShop,
+    clearSearch,
+    openSearch,
+    location.pathname,
+    navigate,
+  ]);
 
   useEffect(() => {
-    if (!isSearchOpen) return;
-    const timer = window.setTimeout(() => searchInputRef.current?.focus(), 50);
+    if (!isSearchOpen || location.pathname !== '/shop') return;
+    const timer = window.setTimeout(() => searchInputRef.current?.focus(), 120);
     return () => window.clearTimeout(timer);
-  }, [isSearchOpen]);
+  }, [isSearchOpen, location.pathname]);
 
   return (
     <>
@@ -186,7 +218,7 @@ export default function SiteHeader() {
           className="hidden items-center gap-[clamp(1rem,3vw,2rem)] md:flex"
           aria-label="Primary"
         >
-          <Link to="/" className={NAV_LINK_CLASS}>
+          <Link to="/" className={NAV_LINK_CLASS} onClick={handleNavigationClose}>
             Home
           </Link>
           <div
@@ -201,7 +233,12 @@ export default function SiteHeader() {
               aria-haspopup="true"
               aria-expanded={shopMenuOpen}
               aria-controls="shop-mega-panel"
-              onClick={onShopMainClick}
+              onClick={(e) => {
+                if (location.pathname !== '/shop') {
+                  handleNavigationClose();
+                }
+                onShopMainClick(e);
+              }}
               onFocus={() => !suppressHoverOpenRef.current && openShopMenu()}
             >
               Shop
