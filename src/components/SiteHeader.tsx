@@ -70,7 +70,6 @@ export default function SiteHeader() {
   const [shopMenuOpen, setShopMenuOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const shopCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const suppressHoverOpenRef = useRef(false);
   const [hoverCapable, setHoverCapable] = useState(true);
 
   const clearShopCloseTimer = useCallback(() => {
@@ -95,27 +94,50 @@ export default function SiteHeader() {
     setShopMenuOpen(false);
   }, [clearShopCloseTimer]);
 
+  /** Force megamenu closed and restore hover so it can reopen without mouse leave */
+  const forceCloseMegaMenu = useCallback(() => {
+    clearShopCloseTimer();
+    setShopMenuOpen(false);
+  }, [clearShopCloseTimer]);
+
   const handleNavigationClose = useCallback(() => {
-    suppressHoverOpenRef.current = true;
-    closeShopMenu();
+    forceCloseMegaMenu();
     setMobileNavOpen(false);
     resetSearch();
-  }, [closeShopMenu, resetSearch]);
+  }, [forceCloseMegaMenu, resetSearch]);
 
   const handleHoverOpen = useCallback(() => {
-    if (!hoverCapable || suppressHoverOpenRef.current) return;
+    if (!hoverCapable) return;
     openShopMenu();
   }, [hoverCapable, openShopMenu]);
 
   const handleHeaderMouseLeave = useCallback(() => {
-    suppressHoverOpenRef.current = false;
     scheduleCloseShopMenu();
   }, [scheduleCloseShopMenu]);
 
   const handleMegaMenuLinkClick = useCallback(() => {
-    suppressHoverOpenRef.current = true;
-    closeShopMenu();
-  }, [closeShopMenu]);
+    forceCloseMegaMenu();
+  }, [forceCloseMegaMenu]);
+
+  const handleShopNavClick = useCallback(
+    (e: React.MouseEvent<HTMLAnchorElement>) => {
+      forceCloseMegaMenu();
+      resetSearch();
+      setMobileNavOpen(false);
+
+      if (location.pathname === '/shop') {
+        e.preventDefault();
+        navigate('/shop', { replace: true });
+        return;
+      }
+
+      if (!hoverCapable && !shopMenuOpen) {
+        e.preventDefault();
+        openShopMenu();
+      }
+    },
+    [forceCloseMegaMenu, resetSearch, location.pathname, navigate, hoverCapable, shopMenuOpen, openShopMenu],
+  );
 
   useEffect(() => () => clearShopCloseTimer(), [clearShopCloseTimer]);
 
@@ -123,8 +145,7 @@ export default function SiteHeader() {
     const previousPath = prevPathnameRef.current;
     prevPathnameRef.current = location.pathname;
 
-    suppressHoverOpenRef.current = true;
-    closeShopMenu();
+    forceCloseMegaMenu();
     setMobileNavOpen(false);
 
     if (location.pathname !== '/shop') {
@@ -135,7 +156,7 @@ export default function SiteHeader() {
     if (previousPath !== '/shop' && !hasPendingShopOpen()) {
       resetSearch();
     }
-  }, [location.pathname, location.key, closeShopMenu, resetSearch, hasPendingShopOpen]);
+  }, [location.pathname, location.key, forceCloseMegaMenu, resetSearch, hasPendingShopOpen]);
 
   useEffect(() => {
     const mq = window.matchMedia('(hover: hover)');
@@ -158,19 +179,12 @@ export default function SiteHeader() {
     return () => document.removeEventListener('mousedown', onDocMouseDown);
   }, [shopMenuOpen, hoverCapable, closeShopMenu]);
 
-  const onShopMainClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    if (!hoverCapable && !shopMenuOpen) {
-      e.preventDefault();
-      openShopMenu();
-    }
-  };
-
   const handleSearchToggle = useCallback(() => {
     if (isSearchOpen) {
       resetSearch();
       return;
     }
-    closeShopMenu();
+    forceCloseMegaMenu();
     setMobileNavOpen(false);
 
     if (location.pathname !== '/shop') {
@@ -184,7 +198,7 @@ export default function SiteHeader() {
   }, [
     isSearchOpen,
     resetSearch,
-    closeShopMenu,
+    forceCloseMegaMenu,
     requestSearchOnShop,
     clearSearch,
     openSearch,
@@ -210,7 +224,11 @@ export default function SiteHeader() {
       }}
     >
       <div className="mx-auto flex min-h-[5rem] w-full max-w-[100%] items-center justify-between px-[clamp(1rem,4vw,3rem)]">
-        <Link to="/" className="font-bold text-[clamp(1.25rem,2.5vw,1.5rem)] text-[#1C1917] no-underline">
+        <Link
+          to="/"
+          className="font-bold text-[clamp(1.25rem,2.5vw,1.5rem)] text-[#1C1917] no-underline"
+          onClick={handleNavigationClose}
+        >
           CHATGA
         </Link>
         {/* Desktop navigation */}
@@ -233,13 +251,8 @@ export default function SiteHeader() {
               aria-haspopup="true"
               aria-expanded={shopMenuOpen}
               aria-controls="shop-mega-panel"
-              onClick={(e) => {
-                if (location.pathname !== '/shop') {
-                  handleNavigationClose();
-                }
-                onShopMainClick(e);
-              }}
-              onFocus={() => !suppressHoverOpenRef.current && openShopMenu()}
+              onClick={handleShopNavClick}
+              onFocus={() => openShopMenu()}
             >
               Shop
             </Link>
@@ -302,7 +315,7 @@ export default function SiteHeader() {
             </Link>
           </li>
           <li>
-            <Link to="/shop" className={`${NAV_LINK_CLASS} block py-3`} onClick={handleNavigationClose}>
+            <Link to="/shop" className={`${NAV_LINK_CLASS} block py-3`} onClick={handleShopNavClick}>
               Shop
             </Link>
           </li>
