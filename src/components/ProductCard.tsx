@@ -49,7 +49,14 @@ export default function ProductCard({ product }: ProductCardProps) {
         <p className="pt-1 text-[13px] font-medium text-[#1C1917]">{product.price}</p>
         <button
           type="button"
-          onClick={() => addItem(product)}
+          onClick={() =>
+            addItem({
+              id: product.id,
+              name: `${product.brand} ${product.title}`,
+              price: product.priceValue,
+              image: product.primaryImageUrl,
+            })
+          }
           className="mt-4 w-full border border-[#1C1917] bg-transparent py-2.5 text-[11px] font-medium uppercase tracking-[0.1em] text-[#1C1917] transition-colors duration-300 hover:bg-[#1C1917] hover:text-white"
         >
           Add to Bag

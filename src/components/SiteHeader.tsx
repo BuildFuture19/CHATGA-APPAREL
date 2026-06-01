@@ -51,7 +51,7 @@ const LOOKBOOK_THUMB =
   'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=400&h=500&fit=crop&auto=format';
 
 export default function SiteHeader() {
-  const { cartCount } = useCart();
+  const { totalItems, isCartOpen, setIsCartOpen } = useCart();
   const {
     searchQuery,
     isSearchOpen,
@@ -179,6 +179,13 @@ export default function SiteHeader() {
     return () => document.removeEventListener('mousedown', onDocMouseDown);
   }, [shopMenuOpen, hoverCapable, closeShopMenu]);
 
+  const handleCartOpen = useCallback(() => {
+    forceCloseMegaMenu();
+    setMobileNavOpen(false);
+    if (isSearchOpen) closeSearch();
+    setIsCartOpen(true);
+  }, [forceCloseMegaMenu, isSearchOpen, closeSearch, setIsCartOpen]);
+
   const handleSearchToggle = useCallback(() => {
     if (isSearchOpen) {
       resetSearch();
@@ -289,14 +296,21 @@ export default function SiteHeader() {
           </button>
           <IoPersonOutline className="h-5 w-5 text-[#44403C]" aria-hidden />
           <IoHeartOutline className="h-5 w-5 text-[#44403C]" aria-hidden />
-          <div className="relative">
-            <IoBagOutline className="h-5 w-5 text-[#44403C]" aria-hidden />
-            {cartCount > 0 && (
-              <span className="absolute -right-1 -top-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-[#1C1917] px-1 text-[10px] font-medium text-white">
-                {cartCount}
+          <button
+            type="button"
+            className="relative inline-flex items-center justify-center text-[#44403C] transition-colors duration-300 hover:text-[#1C1917]"
+            aria-expanded={isCartOpen}
+            aria-controls="cart-drawer"
+            aria-label={totalItems > 0 ? `Shopping bag, ${totalItems} items` : 'Shopping bag'}
+            onClick={handleCartOpen}
+          >
+            <IoBagOutline className="h-5 w-5" aria-hidden />
+            {totalItems > 0 && (
+              <span className="absolute -right-1.5 -top-1.5 flex h-[1.125rem] min-w-[1.125rem] items-center justify-center rounded-full border border-[#FAFAF9] bg-[#1C1917] px-1 text-[9px] font-medium leading-none text-white">
+                {totalItems > 99 ? '99+' : totalItems}
               </span>
             )}
-          </div>
+          </button>
         </div>
       </div>
 
