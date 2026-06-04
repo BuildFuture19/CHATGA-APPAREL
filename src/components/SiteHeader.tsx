@@ -5,7 +5,6 @@ import {
   IoPersonOutline,
   IoHeartOutline,
   IoBagOutline,
-  IoMenuOutline,
   IoCloseOutline,
 } from 'react-icons/io5';
 import { useCart } from '../context/CartContext.tsx';
@@ -49,6 +48,17 @@ const MEGA_MENU_COLUMNS = [
 
 const LOOKBOOK_THUMB =
   'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=400&h=500&fit=crop&auto=format';
+const USE_PREMIUM_DRAWER = true; // Set to false to test the old mobile dropdown layout
+
+const MOBILE_DRAWER_SHOP_LINKS = [
+  { label: 'Women', to: '/shop?category=women' },
+  { label: 'Men', to: '/shop?category=men' },
+  { label: 'New Arrivals', to: '/shop?category=new-arrivals' },
+  { label: 'Lookbook', to: '/shop?category=lookbook' },
+] as const;
+
+const MOBILE_DRAWER_SECTION_LABEL =
+  'text-[10px] font-bold uppercase tracking-[0.14em] text-[#A8A29E]';
 
 export default function SiteHeader() {
   const { totalItems, isCartOpen, setIsCartOpen } = useCart();
@@ -69,6 +79,7 @@ export default function SiteHeader() {
   const prevPathnameRef = useRef(location.pathname);
   const [shopMenuOpen, setShopMenuOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const shopCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [hoverCapable, setHoverCapable] = useState(true);
 
@@ -100,9 +111,31 @@ export default function SiteHeader() {
     setShopMenuOpen(false);
   }, [clearShopCloseTimer]);
 
+  const closeMenu = useCallback(() => {
+    if (USE_PREMIUM_DRAWER) {
+      setIsMenuOpen(false);
+      return;
+    }
+    setMobileNavOpen(false);
+  }, []);
+
+  const handleMenuButtonClick = useCallback(() => {
+    forceCloseMegaMenu();
+    if (isSearchOpen) closeSearch();
+    if (USE_PREMIUM_DRAWER) {
+      setIsMenuOpen(true);
+      return;
+    }
+    setMobileNavOpen((open) => !open);
+  }, [forceCloseMegaMenu, isSearchOpen, closeSearch]);
+
   const handleNavigationClose = useCallback(() => {
     forceCloseMegaMenu();
-    setMobileNavOpen(false);
+    if (USE_PREMIUM_DRAWER) {
+      setIsMenuOpen(false);
+    } else {
+      setMobileNavOpen(false);
+    }
     resetSearch();
   }, [forceCloseMegaMenu, resetSearch]);
 
@@ -123,7 +156,11 @@ export default function SiteHeader() {
     (e: React.MouseEvent<HTMLAnchorElement>) => {
       forceCloseMegaMenu();
       resetSearch();
-      setMobileNavOpen(false);
+      if (USE_PREMIUM_DRAWER) {
+        setIsMenuOpen(false);
+      } else {
+        setMobileNavOpen(false);
+      }
 
       if (location.pathname === '/shop') {
         e.preventDefault();
@@ -146,6 +183,7 @@ export default function SiteHeader() {
     prevPathnameRef.current = location.pathname;
 
     forceCloseMegaMenu();
+    setIsMenuOpen(false);
     setMobileNavOpen(false);
 
     if (location.pathname !== '/shop') {
@@ -179,9 +217,25 @@ export default function SiteHeader() {
     return () => document.removeEventListener('mousedown', onDocMouseDown);
   }, [shopMenuOpen, hoverCapable, closeShopMenu]);
 
+  const handleDrawerSearch = useCallback(() => {
+    closeMenu();
+    forceCloseMegaMenu();
+    if (location.pathname !== '/shop') {
+      requestSearchOnShop();
+      navigate('/shop');
+      return;
+    }
+    clearSearch();
+    openSearch();
+  }, [closeMenu, forceCloseMegaMenu, location.pathname, requestSearchOnShop, navigate, clearSearch, openSearch]);
+
   const handleCartOpen = useCallback(() => {
     forceCloseMegaMenu();
-    setMobileNavOpen(false);
+    if (USE_PREMIUM_DRAWER) {
+      setIsMenuOpen(false);
+    } else {
+      setMobileNavOpen(false);
+    }
     if (isSearchOpen) closeSearch();
     setIsCartOpen(true);
   }, [forceCloseMegaMenu, isSearchOpen, closeSearch, setIsCartOpen]);
@@ -192,6 +246,7 @@ export default function SiteHeader() {
       return;
     }
     forceCloseMegaMenu();
+    setIsMenuOpen(false);
     setMobileNavOpen(false);
 
     if (location.pathname !== '/shop') {
@@ -219,6 +274,23 @@ export default function SiteHeader() {
     return () => window.clearTimeout(timer);
   }, [isSearchOpen, location.pathname]);
 
+  useEffect(() => {
+    if (!USE_PREMIUM_DRAWER || !isMenuOpen) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') closeMenu();
+    };
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('keydown', onKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [isMenuOpen, closeMenu]);
+
   return (
     <>
     <header
@@ -239,10 +311,7 @@ export default function SiteHeader() {
           CHATGA
         </Link>
         {/* Desktop navigation */}
-        <nav
-          className="hidden items-center gap-[clamp(1rem,3vw,2rem)] md:flex"
-          aria-label="Primary"
-        >
+        <nav className="hidden items-center gap-8 md:flex" aria-label="Primary">
           <Link to="/" className={NAV_LINK_CLASS} onClick={handleNavigationClose}>
             Home
           </Link>
@@ -272,17 +341,17 @@ export default function SiteHeader() {
         <div className="flex items-center gap-[clamp(0.75rem,2vw,1.5rem)]">
           <button
             type="button"
-            className="inline-flex items-center justify-center md:hidden"
-            aria-expanded={mobileNavOpen}
-            aria-controls="mobile-primary-nav"
-            aria-label={mobileNavOpen ? 'Close menu' : 'Open menu'}
-            onClick={() => setMobileNavOpen((open) => !open)}
+            className="block md:hidden"
+            aria-expanded={USE_PREMIUM_DRAWER ? isMenuOpen : mobileNavOpen}
+            aria-controls={USE_PREMIUM_DRAWER ? 'mobile-menu-drawer' : 'mobile-primary-nav'}
+            aria-label="Open menu"
+            onClick={handleMenuButtonClick}
           >
-            {mobileNavOpen ? (
-              <IoCloseOutline className="h-6 w-6 text-[#44403C]" />
-            ) : (
-              <IoMenuOutline className="h-6 w-6 text-[#44403C]" />
-            )}
+            <span className="flex h-3.5 w-5 flex-col justify-between" aria-hidden>
+              <span className="block h-px w-full bg-[#44403C]" />
+              <span className="block h-px w-full bg-[#44403C]" />
+              <span className="block h-px w-full bg-[#44403C]" />
+            </span>
           </button>
           <button
             type="button"
@@ -314,32 +383,33 @@ export default function SiteHeader() {
         </div>
       </div>
 
-      {/* Mobile navigation */}
-      <nav
-        id="mobile-primary-nav"
-        aria-label="Primary mobile"
-        className={`border-t border-stone-200/50 bg-[#FAFAF9]/95 backdrop-blur-md md:hidden ${
-          mobileNavOpen ? 'block' : 'hidden'
-        }`}
-      >
-        <ul className="flex flex-col px-[clamp(1rem,4vw,3rem)] py-4" role="list">
-          <li>
-            <Link to="/" className={`${NAV_LINK_CLASS} block py-3`} onClick={handleNavigationClose}>
-              Home
-            </Link>
-          </li>
-          <li>
-            <Link to="/shop" className={`${NAV_LINK_CLASS} block py-3`} onClick={handleShopNavClick}>
-              Shop
-            </Link>
-          </li>
-          <li>
-            <Link to="/about" className={`${NAV_LINK_CLASS} block py-3`} onClick={handleNavigationClose}>
-              About
-            </Link>
-          </li>
-        </ul>
-      </nav>
+      {!USE_PREMIUM_DRAWER && (
+        <nav
+          id="mobile-primary-nav"
+          aria-label="Primary mobile"
+          className={`border-t border-stone-200/50 bg-[#FAFAF9]/95 backdrop-blur-md md:hidden ${
+            mobileNavOpen ? 'block' : 'hidden'
+          }`}
+        >
+          <ul className="flex flex-col px-[clamp(1rem,4vw,3rem)] py-4" role="list">
+            <li>
+              <Link to="/" className={`${NAV_LINK_CLASS} block py-3`} onClick={handleNavigationClose}>
+                Home
+              </Link>
+            </li>
+            <li>
+              <Link to="/shop" className={`${NAV_LINK_CLASS} block py-3`} onClick={handleShopNavClick}>
+                Shop
+              </Link>
+            </li>
+            <li>
+              <Link to="/about" className={`${NAV_LINK_CLASS} block py-3`} onClick={handleNavigationClose}>
+                About
+              </Link>
+            </li>
+          </ul>
+        </nav>
+      )}
 
       {/* Search drawer — slides down from sticky header */}
       <div
@@ -435,6 +505,121 @@ export default function SiteHeader() {
         aria-label="Close search"
         onClick={closeSearch}
       />
+    )}
+
+    {USE_PREMIUM_DRAWER && (
+      <div
+        className={`fixed inset-0 z-[80] md:hidden ${
+          isMenuOpen ? 'pointer-events-auto' : 'pointer-events-none'
+        }`}
+        aria-hidden={!isMenuOpen}
+      >
+        <button
+          type="button"
+          tabIndex={isMenuOpen ? 0 : -1}
+          aria-label="Close menu"
+          onClick={closeMenu}
+          className={`fixed inset-0 transform-gpu bg-black/30 backdrop-blur-sm transition-all duration-300 ease-out motion-reduce:transition-none ${
+            isMenuOpen ? 'opacity-100' : 'pointer-events-none opacity-0'
+          }`}
+        />
+
+        <nav
+          id="mobile-menu-drawer"
+          aria-label="Primary mobile"
+          className={`fixed left-0 top-0 z-[90] flex h-dvh w-[min(100vw-2.5rem,20rem)] transform-gpu flex-col bg-[#FAFAF9] text-[#1C1917] shadow-2xl transition-all duration-300 ease-out will-change-transform motion-reduce:transition-none sm:w-[320px] ${
+            isMenuOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
+        >
+          <div className="flex shrink-0 items-center justify-between border-b border-[#E7E5E4]/80 px-6 py-5">
+            <span className="text-[15px] font-bold tracking-tight text-[#1C1917]">CHATGA</span>
+            <button
+              type="button"
+              onClick={closeMenu}
+              className="flex h-10 w-10 items-center justify-center text-[22px] font-light leading-none text-[#78716C] transition-colors duration-300 hover:text-[#1C1917]"
+              aria-label="Close menu"
+            >
+              ×
+            </button>
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+            <div className="px-6 py-8">
+              <p className={MOBILE_DRAWER_SECTION_LABEL}>Menu</p>
+              <ul className="mt-5 space-y-1" role="list">
+                {[
+                  { label: 'Home', to: '/', onClick: handleNavigationClose },
+                  { label: 'Shop', to: '/shop', onClick: handleShopNavClick },
+                  { label: 'About', to: '/about', onClick: handleNavigationClose },
+                ].map((item) => (
+                  <li key={item.label}>
+                    <Link
+                      to={item.to}
+                      className="block py-2.5 text-[17px] font-medium tracking-[0.02em] text-[#1C1917] no-underline transition-colors duration-300 hover:text-[#57534E]"
+                      onClick={item.onClick}
+                    >
+                      {item.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="border-t border-[#E7E5E4]/80 px-6 py-8">
+              <p className={MOBILE_DRAWER_SECTION_LABEL}>Shop</p>
+              <ul className="mt-5 space-y-0.5" role="list">
+                {MOBILE_DRAWER_SHOP_LINKS.map((link) => (
+                  <li key={link.label}>
+                    <Link
+                      to={link.to}
+                      className="block py-2 text-[14px] font-medium text-[#78716C] no-underline transition-colors duration-300 hover:text-[#1C1917]"
+                      onClick={handleMegaMenuLinkClick}
+                    >
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="border-t border-[#E7E5E4]/80 px-6 py-8">
+              <Link
+                to="/shop?category=lookbook"
+                className="group block no-underline"
+                onClick={() => {
+                  handleMegaMenuLinkClick();
+                  closeMenu();
+                }}
+              >
+                <div className="aspect-[5/4] w-full overflow-hidden bg-[#F5F5F4]">
+                  <img
+                    src={LOOKBOOK_THUMB}
+                    alt=""
+                    className="h-full w-full object-cover transition duration-700 ease-out group-hover:scale-[1.03]"
+                  />
+                </div>
+                <p className="mt-4 text-[12px] font-medium leading-snug text-[#78716C] transition-colors duration-300 group-hover:text-[#1C1917]">
+                  The Lookbook — Browse the season
+                </p>
+              </Link>
+            </div>
+          </div>
+
+          <div className="shrink-0 border-t border-[#E7E5E4]/80 px-6 py-6">
+            <button
+              type="button"
+              onClick={handleDrawerSearch}
+              className="flex w-full items-center justify-center gap-2 border border-[#D6D3D1] bg-transparent py-3 text-[11px] font-medium uppercase tracking-[0.12em] text-[#1C1917] transition-colors duration-300 hover:border-[#1C1917] hover:bg-[#1C1917] hover:text-white"
+            >
+              <IoSearchOutline className="h-4 w-4" aria-hidden />
+              Search Collection
+            </button>
+            <p className="mt-5 text-center text-[10px] font-light uppercase tracking-[0.16em] text-[#A8A29E]">
+              Curated luxury apparel
+            </p>
+          </div>
+        </nav>
+      </div>
     )}
     </>
   );

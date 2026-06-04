@@ -44,27 +44,29 @@ export default function CartDrawer() {
 
   return createPortal(
     <div
-      className={`fixed inset-0 z-[100] ${isCartOpen ? 'pointer-events-auto' : 'pointer-events-none'}`}
+      className={`fixed inset-0 z-[100] ${
+        isCartOpen ? 'pointer-events-auto' : 'pointer-events-none'
+      }`}
       aria-hidden={!isCartOpen}
     >
-      {/* Backdrop */}
+      {/* Backdrop — fades in/out */}
       <button
         type="button"
         tabIndex={isCartOpen ? 0 : -1}
         aria-label="Close shopping bag"
         onClick={close}
-        className={`absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-300 ease-out motion-reduce:transition-none ${
-          isCartOpen ? 'opacity-100' : 'opacity-0'
+        className={`absolute inset-0 transform-gpu bg-black/40 backdrop-blur-sm transition-all duration-300 ease-out motion-reduce:transition-none ${
+          isCartOpen ? 'opacity-100' : 'pointer-events-none opacity-0'
         }`}
       />
 
-      {/* Panel */}
+      {/* Panel — slides in from the right */}
       <aside
         id="cart-drawer"
         role="dialog"
         aria-modal="true"
         aria-labelledby="cart-drawer-title"
-        className={`absolute right-0 top-0 grid h-dvh w-full grid-rows-[auto_1fr_auto] bg-[#FAFAF9] text-[#1C1917] shadow-[0_0_48px_rgba(28,25,23,0.12)] transition-transform duration-300 ease-out motion-reduce:transition-none sm:w-[450px] ${
+        className={`absolute right-0 top-0 grid h-dvh w-full transform-gpu grid-rows-[auto_1fr_auto] bg-[#FAFAF9] text-[#1C1917] shadow-[0_0_48px_rgba(28,25,23,0.12)] transition-all duration-300 ease-out will-change-transform motion-reduce:transition-none sm:w-[450px] ${
           isCartOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
