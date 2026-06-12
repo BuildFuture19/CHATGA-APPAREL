@@ -80,6 +80,7 @@ export default function SiteHeader() {
   const [shopMenuOpen, setShopMenuOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isMobileShopOpen, setIsMobileShopOpen] = useState(false);
   const shopCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [hoverCapable, setHoverCapable] = useState(true);
 
@@ -114,10 +115,30 @@ export default function SiteHeader() {
   const closeMenu = useCallback(() => {
     if (USE_PREMIUM_DRAWER) {
       setIsMenuOpen(false);
+      setIsMobileShopOpen(false);
       return;
     }
     setMobileNavOpen(false);
   }, []);
+
+  const handleMobileShopAllNavigate = useCallback(() => {
+    forceCloseMegaMenu();
+    resetSearch();
+    closeMenu();
+    navigate('/shop');
+  }, [forceCloseMegaMenu, resetSearch, closeMenu, navigate]);
+
+  const handleMobileDrawerShopClick = useCallback(
+    (e: React.MouseEvent<HTMLAnchorElement>) => {
+      e.preventDefault();
+      if (!isMobileShopOpen) {
+        setIsMobileShopOpen(true);
+        return;
+      }
+      handleMobileShopAllNavigate();
+    },
+    [isMobileShopOpen, handleMobileShopAllNavigate],
+  );
 
   const handleMenuButtonClick = useCallback(() => {
     forceCloseMegaMenu();
@@ -156,11 +177,9 @@ export default function SiteHeader() {
     (e: React.MouseEvent<HTMLAnchorElement>) => {
       forceCloseMegaMenu();
       resetSearch();
-      if (USE_PREMIUM_DRAWER) {
-        setIsMenuOpen(false);
-      } else {
-        setMobileNavOpen(false);
-      }
+      setIsMenuOpen(false);
+      setMobileNavOpen(false);
+      setIsMobileShopOpen(false);
 
       if (location.pathname === '/shop') {
         e.preventDefault();
@@ -168,7 +187,11 @@ export default function SiteHeader() {
         return;
       }
 
-      if (!hoverCapable && !shopMenuOpen) {
+      if (hoverCapable) {
+        return;
+      }
+
+      if (!shopMenuOpen) {
         e.preventDefault();
         openShopMenu();
       }
@@ -184,6 +207,7 @@ export default function SiteHeader() {
 
     forceCloseMegaMenu();
     setIsMenuOpen(false);
+    setIsMobileShopOpen(false);
     setMobileNavOpen(false);
 
     if (location.pathname !== '/shop') {
@@ -509,7 +533,7 @@ export default function SiteHeader() {
 
     {USE_PREMIUM_DRAWER && (
       <div
-        className={`fixed inset-0 z-[80] md:hidden ${
+        className={`fixed top-0 left-0 z-50 h-screen w-full md:hidden ${
           isMenuOpen ? 'pointer-events-auto' : 'pointer-events-none'
         }`}
         aria-hidden={!isMenuOpen}
@@ -519,7 +543,7 @@ export default function SiteHeader() {
           tabIndex={isMenuOpen ? 0 : -1}
           aria-label="Close menu"
           onClick={closeMenu}
-          className={`fixed inset-0 transform-gpu bg-black/30 backdrop-blur-sm transition-all duration-300 ease-out motion-reduce:transition-none ${
+          className={`absolute inset-0 transform-gpu bg-black/30 backdrop-blur-sm transition-all duration-300 ease-out motion-reduce:transition-none ${
             isMenuOpen ? 'opacity-100' : 'pointer-events-none opacity-0'
           }`}
         />
@@ -527,7 +551,7 @@ export default function SiteHeader() {
         <nav
           id="mobile-menu-drawer"
           aria-label="Primary mobile"
-          className={`fixed left-0 top-0 z-[90] flex h-dvh w-[min(100vw-2.5rem,20rem)] transform-gpu flex-col bg-[#FAFAF9] text-[#1C1917] shadow-2xl transition-all duration-300 ease-out will-change-transform motion-reduce:transition-none sm:w-[320px] ${
+          className={`absolute left-0 top-0 z-[1] flex h-full w-[min(100vw-2.5rem,20rem)] transform-gpu flex-col bg-[#FAFAF9] text-[#1C1917] shadow-2xl transition-all duration-300 ease-out will-change-transform motion-reduce:transition-none sm:w-[320px] ${
             isMenuOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
         >
@@ -547,21 +571,78 @@ export default function SiteHeader() {
             <div className="px-6 py-8">
               <p className={MOBILE_DRAWER_SECTION_LABEL}>Menu</p>
               <ul className="mt-5 space-y-1" role="list">
-                {[
-                  { label: 'Home', to: '/', onClick: handleNavigationClose },
-                  { label: 'Shop', to: '/shop', onClick: handleShopNavClick },
-                  { label: 'About', to: '/about', onClick: handleNavigationClose },
-                ].map((item) => (
-                  <li key={item.label}>
-                    <Link
-                      to={item.to}
-                      className="block py-2.5 text-[17px] font-medium tracking-[0.02em] text-[#1C1917] no-underline transition-colors duration-300 hover:text-[#57534E]"
-                      onClick={item.onClick}
-                    >
-                      {item.label}
-                    </Link>
-                  </li>
-                ))}
+                <li>
+                  <Link
+                    to="/"
+                    className="block py-2.5 text-[17px] font-medium tracking-[0.02em] text-[#1C1917] no-underline transition-colors duration-300 hover:text-[#57534E]"
+                    onClick={handleNavigationClose}
+                  >
+                    Home
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/shop"
+                    className="block py-2.5 text-[17px] font-medium tracking-[0.02em] text-[#1C1917] no-underline transition-colors duration-300 hover:text-[#57534E]"
+                    aria-expanded={isMobileShopOpen}
+                    aria-controls="mobile-shop-mega-accordion"
+                    onClick={handleMobileDrawerShopClick}
+                  >
+                    Shop
+                  </Link>
+                  <div
+                    id="mobile-shop-mega-accordion"
+                    className={`overflow-hidden transition-[max-height,opacity] duration-300 ease-out ${
+                      isMobileShopOpen ? 'max-h-[1200px] opacity-100' : 'max-h-0 opacity-0'
+                    }`}
+                    aria-hidden={!isMobileShopOpen}
+                  >
+                    <div className="space-y-6 pb-2 pl-1 pt-2">
+                      {MEGA_MENU_COLUMNS.map((column) => (
+                        <div key={column.title}>
+                          <p className="mb-3 font-bold text-[10px] uppercase tracking-[0.14em] text-[#1C1917]">
+                            {column.title}
+                          </p>
+                          <ul className="space-y-0.5" role="list">
+                            {column.links.map((link) => (
+                              <li key={link.label}>
+                                <Link
+                                  to={link.to}
+                                  className="block py-2 text-[14px] font-medium text-[#78716C] no-underline transition-colors duration-300 hover:text-[#1C1917]"
+                                  onClick={() => {
+                                    handleMegaMenuLinkClick();
+                                    closeMenu();
+                                  }}
+                                >
+                                  {link.label}
+                                </Link>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                      <Link
+                        to="/shop"
+                        className="block py-2 text-[14px] font-medium text-[#1C1917] no-underline transition-colors duration-300 hover:text-[#57534E]"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleMobileShopAllNavigate();
+                        }}
+                      >
+                        Shop All
+                      </Link>
+                    </div>
+                  </div>
+                </li>
+                <li>
+                  <Link
+                    to="/about"
+                    className="block py-2.5 text-[17px] font-medium tracking-[0.02em] text-[#1C1917] no-underline transition-colors duration-300 hover:text-[#57534E]"
+                    onClick={handleNavigationClose}
+                  >
+                    About
+                  </Link>
+                </li>
               </ul>
             </div>
 
