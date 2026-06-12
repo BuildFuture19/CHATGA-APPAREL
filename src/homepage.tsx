@@ -4,8 +4,11 @@ import { GiShirt, GiConverseShoe } from 'react-icons/gi';
 import { IoBagHandleOutline } from 'react-icons/io5';
 import SiteHeader from './components/SiteHeader.tsx';
 import SiteFooter from './components/SiteFooter.tsx';
+import { useCart } from './context/CartContext.tsx';
+
 
 export default function ChatgaHomepage() {
+  const { addItem } = useCart();
   const categories = [
     { icon: MdOutlineCheckroom, label: 'Outerwear' },
     { icon: GiShirt, label: 'Knitwear' },
@@ -14,29 +17,38 @@ export default function ChatgaHomepage() {
   ];
   const products = [
     {
+      id: 'home-cashmere-turtleneck',
       brand: 'Maison Margiela',
       title: 'Cashmere Blend Turtleneck',
       price: '$485',
+      priceValue: 485,
       image: 'https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?w=400&h=500&fit=crop',
     },
     {
+      id: 'home-wool-blazer',
       brand: 'Lemaire',
       title: 'Oversized Wool Blazer',
       price: '$890',
+      priceValue: 890,
       image: 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=400&h=500&fit=crop',
     },
     {
+      id: 'home-silk-blouse',
       brand: 'The Row',
       title: 'Silk Crepe Blouse',
       price: '$650',
+      priceValue: 650,
       image: 'https://images.unsplash.com/photo-1618932260643-eee4a2f652a6?w=400&h=500&fit=crop',
     },
     {
+      id: 'home-leather-bag',
       brand: 'Bottega Veneta',
       title: 'Leather Shoulder Bag',
       price: '$2,450',
+      priceValue: 2450,
       image: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=400&h=500&fit=crop',
     },
+
   ];
   const socialImages = [
     'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=120&h=120&fit=crop',
@@ -91,8 +103,8 @@ export default function ChatgaHomepage() {
           Featured Selection
         </h2>
         <div className="grid grid-cols-2 gap-[clamp(0.75rem,2vw,1.5rem)] lg:grid-cols-4">
-          {products.map((product, index) => (
-            <div key={index} className="group min-w-0">
+            {products.map((product) => (
+            <div key={product.id} className="group min-w-0">
               <div className="relative mb-6 aspect-[4/5] shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
                 <img src={product.image} alt={product.title} className="h-full w-full object-cover" />
               </div>
@@ -100,6 +112,20 @@ export default function ChatgaHomepage() {
                 <p className="mb-1 text-[13px] font-medium text-[#57534E]">{product.brand}</p>
                 <p className="mb-2 text-[15px] font-normal text-[#1C1917]">{product.title}</p>
                 <p className="text-[15px] font-semibold text-[#1C1917]">{product.price}</p>
+                <button
+                  type="button"
+                  onClick={() =>
+                    addItem({
+                      id: product.id,
+                      name: `${product.brand} ${product.title}`,
+                      price: product.priceValue,
+                      image: product.image,
+                    })
+                  }
+                  className="mt-4 w-full border border-[#1C1917] bg-transparent py-2.5 text-[11px] font-medium uppercase tracking-[0.1em] text-[#1C1917] transition-colors duration-300 hover:bg-[#1C1917] hover:text-white"
+                >
+                  Add to Bag
+                </button>
               </div>
             </div>
           ))}
