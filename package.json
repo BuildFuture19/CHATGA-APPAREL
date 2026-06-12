@@ -5,8 +5,7 @@
     "type": "module",
     "scripts": {
         "dev": "vite",
-        "build": "tsx src/server-render.tsx",
-        "preview": "vite preview"
+"build": "vite build",        "preview": "vite preview"
     },
     "dependencies": {
         "@hookform/resolvers": "^3.3.2",
