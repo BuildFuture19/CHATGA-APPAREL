@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   IoSearchOutline,
@@ -140,15 +141,23 @@ export default function SiteHeader() {
     [isMobileShopOpen, handleMobileShopAllNavigate],
   );
 
-  const handleMenuButtonClick = useCallback(() => {
-    forceCloseMegaMenu();
-    if (isSearchOpen) closeSearch();
-    if (USE_PREMIUM_DRAWER) {
-      setIsMenuOpen(true);
-      return;
-    }
-    setMobileNavOpen((open) => !open);
-  }, [forceCloseMegaMenu, isSearchOpen, closeSearch]);
+  const handleMenuButtonClick = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+      forceCloseMegaMenu();
+      if (isSearchOpen) closeSearch();
+      if (USE_PREMIUM_DRAWER) {
+        if (isMenuOpen) {
+          setIsMobileShopOpen(false);
+        }
+        setIsMenuOpen((open) => !open);
+        return;
+      }
+      setMobileNavOpen((open) => !open);
+    },
+    [forceCloseMegaMenu, isSearchOpen, closeSearch, isMenuOpen],
+  );
 
   const handleNavigationClose = useCallback(() => {
     forceCloseMegaMenu();
@@ -299,18 +308,20 @@ export default function SiteHeader() {
   }, [isSearchOpen, location.pathname]);
 
   useEffect(() => {
-    if (!USE_PREMIUM_DRAWER || !isMenuOpen) return;
+    if (!USE_PREMIUM_DRAWER || !isMenuOpen) {
+      document.body.style.overflow = 'unset';
+      return;
+    }
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') closeMenu();
     };
 
-    const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     document.addEventListener('keydown', onKeyDown);
 
     return () => {
-      document.body.style.overflow = previousOverflow;
+      document.body.style.overflow = 'unset';
       document.removeEventListener('keydown', onKeyDown);
     };
   }, [isMenuOpen, closeMenu]);
@@ -363,20 +374,22 @@ export default function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-[clamp(0.75rem,2vw,1.5rem)]">
-          <button
-            type="button"
-            className="block md:hidden"
-            aria-expanded={USE_PREMIUM_DRAWER ? isMenuOpen : mobileNavOpen}
-            aria-controls={USE_PREMIUM_DRAWER ? 'mobile-menu-drawer' : 'mobile-primary-nav'}
-            aria-label="Open menu"
-            onClick={handleMenuButtonClick}
-          >
-            <span className="flex h-3.5 w-5 flex-col justify-between" aria-hidden>
-              <span className="block h-px w-full bg-[#44403C]" />
-              <span className="block h-px w-full bg-[#44403C]" />
-              <span className="block h-px w-full bg-[#44403C]" />
-            </span>
-          </button>
+          <div className="relative z-[60] md:hidden">
+            <button
+              type="button"
+              className="block"
+              aria-expanded={USE_PREMIUM_DRAWER ? isMenuOpen : mobileNavOpen}
+              aria-controls={USE_PREMIUM_DRAWER ? 'mobile-menu-drawer' : 'mobile-primary-nav'}
+              aria-label={USE_PREMIUM_DRAWER && isMenuOpen ? 'Close menu' : 'Open menu'}
+              onClick={handleMenuButtonClick}
+            >
+              <span className="flex h-3.5 w-5 flex-col justify-between" aria-hidden>
+                <span className="block h-px w-full bg-[#44403C]" />
+                <span className="block h-px w-full bg-[#44403C]" />
+                <span className="block h-px w-full bg-[#44403C]" />
+              </span>
+            </button>
+          </div>
           <button
             type="button"
             className="inline-flex items-center justify-center text-[#44403C] transition-colors duration-300 hover:text-[#1C1917]"
@@ -531,7 +544,8 @@ export default function SiteHeader() {
       />
     )}
 
-    {USE_PREMIUM_DRAWER && (
+    {USE_PREMIUM_DRAWER &&
+      createPortal(
       <div
         className={`fixed top-0 left-0 z-50 h-screen w-full md:hidden ${
           isMenuOpen ? 'pointer-events-auto' : 'pointer-events-none'
@@ -618,19 +632,23 @@ export default function SiteHeader() {
                                 </Link>
                               </li>
                             ))}
+                            {column.title === 'CATEGORIES' && (
+                              <li>
+                                <Link
+                                  to="/shop"
+                                  className="block py-2 text-[14px] font-medium text-[#1C1917] no-underline transition-colors duration-300 hover:text-[#57534E]"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    handleMobileShopAllNavigate();
+                                  }}
+                                >
+                                  Shop All
+                                </Link>
+                              </li>
+                            )}
                           </ul>
                         </div>
                       ))}
-                      <Link
-                        to="/shop"
-                        className="block py-2 text-[14px] font-medium text-[#1C1917] no-underline transition-colors duration-300 hover:text-[#57534E]"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          handleMobileShopAllNavigate();
-                        }}
-                      >
-                        Shop All
-                      </Link>
                     </div>
                   </div>
                 </li>
@@ -700,8 +718,9 @@ export default function SiteHeader() {
             </p>
           </div>
         </nav>
-      </div>
-    )}
+      </div>,
+      document.body,
+      )}
     </>
   );
 }
